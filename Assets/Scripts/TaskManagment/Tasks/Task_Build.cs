@@ -7,6 +7,7 @@ using Ai.Brain;
 using Game;
 using Building.Configuration.Models;
 using Items;
+using Ai.EQS;
 
 namespace TaskManagment.Tasks
 {
@@ -50,6 +51,8 @@ namespace TaskManagment.Tasks
             {
                 action.performer.BreakeActiveTask();
             }
+
+            avable = true;
         }
 
         public Action GetAction(IBrain performer)
@@ -62,22 +65,41 @@ namespace TaskManagment.Tasks
             if (!IsContainAllNeedItems(construction, needItems))
             {
                 Action action = new Action();
-                //ищем ближайший предмет (или в складе или на земле) и забиваем экшн
 
-                return action;
+                if (IsAvableAllRequiredItems(needItems))
+                {
+                    IEQS_ContextElement item = EQS.GetContext(EEQS_ContextType.ITEMS).GetNearest(needItems[0].itemPath, performer.gameObject.transform.localPosition);
+                    IEQS_ContextElement storage = EQS.GetContext(EEQS_ContextType.BUILDING)
+                        .GetFilter().AddElementsByChildrenPath(needItems[0].itemPath, "Storage").SortByDistance(performer.gameObject.transform.localPosition).GetContextElement();
+                    if(Vector3.Distance(performer.gameObject.transform.localPosition, item.Position) < 
+                        Vector3.Distance(performer.gameObject.transform.localPosition, storage.Position))
+                    {
+                        //item
+                        action.SetCarryAction_Item(this, performer, item.gameObject.GetComponent<IItem>(), buildingStorage);
+                    }
+                    else
+                    {
+                        //storage
+                        action.SetCarryAction_Storage(this, performer, needItems[0].itemPath, needItems[0].count, storage.gameObject.GetComponent<IStorage>(), buildingStorage);
+                    }
+
+                    lastAction = action;
+                    return action;
+                }
             }
             
             //Не максимальный прогресс сборки? (Строить здание)
-            if(interactive.GetCurrentProgress() < interactive.GetMaxProgress())
+            if(interactive.GetCurrentProgress() < interactive.GetMaxProgress() && IsContainAllNeedItems(construction))
             {
                 Action action = new Action();
-                action.progress = progressStep;
-                action.time = timeForStep;
-                action.interactive = interactive;
+                action.SetInteractionAction(this, performer, progressStep, timeForStep, interactive);
+
+                lastAction = action;
                 return action;
             }
 
-            throw new System.NotImplementedException();
+            lastAction = null;
+            return null;
         }
 
         public void SetTaskPriority(float priority)
@@ -97,7 +119,17 @@ namespace TaskManagment.Tasks
 
         public bool AvableToGet()
         {
-            return avable;
+            if (!avable)
+                return false;
+
+            List<Construction.BuildCost> needItems = new List<Construction.BuildCost>();
+
+            if (!IsContainAllNeedItems(Pool.buildingConfig.GetByPath(buildPath), needItems))
+            {
+                return IsAvableAllRequiredItems(needItems);
+            }
+
+            return false;
         }
 
         public void SetParameters(Dictionary<string, object> valuePairs)
@@ -175,6 +207,47 @@ namespace TaskManagment.Tasks
             }
 
             return result;
+        }
+
+
+        private bool IsAvableAllRequiredItems(List<Construction.BuildCost> needItems)
+        {
+            foreach (Construction.BuildCost cost in needItems)
+            {
+                int avableItemCount = 0;
+
+                foreach (IEQS_ContextElement item in EQS.GetContext(EEQS_ContextType.ITEMS).GetAllByPath(cost.itemPath))
+                {
+                    object parameter;
+                    if (item.Parameters.TryGetValue("Count", out parameter))
+                        avableItemCount += (int)parameter;
+
+                    if (avableItemCount >= cost.count)
+                        break;
+                }
+
+                if (avableItemCount >= cost.count)
+                    break;
+
+
+                foreach (IEQS_ContextElement storage in EQS.GetContext(EEQS_ContextType.BUILDING).GetFilter().AddElementsByChildrenPath(cost.itemPath, "Storage").GetContextElements())
+                {
+                    foreach (IEQS_ContextElement item in storage.GetChildrenByPath(cost.itemPath))
+                    {
+                        object parameter;
+                        if (item.Parameters.TryGetValue("Count", out parameter))
+                            avableItemCount += (int)parameter;
+
+                        if (avableItemCount >= cost.count)
+                            break;
+                    }
+                }
+
+                if (avableItemCount < cost.count)
+                    return false;
+            }
+
+            return true;
         }
     }
 }

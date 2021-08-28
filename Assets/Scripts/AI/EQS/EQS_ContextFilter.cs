@@ -17,6 +17,17 @@ namespace Ai.EQS
             return null;
         }
 
+        public List<IEQS_ContextElement> GetContextElements()
+        {
+            List<IEQS_ContextElement> res = new List<IEQS_ContextElement>();
+            foreach(FilterWrapper wrapper in elements)
+            {
+                res.Add(wrapper.element);
+            }
+
+            return res;
+        }
+
         public void SetContext(IEQS_Context context)
         {
             elements.Clear();
@@ -34,21 +45,31 @@ namespace Ai.EQS
             return this;
         }
 
+        public IEQS_ContextFilter AddElementsByChildrenPath(string childPath, string path = "")
+        {
+            foreach (IEQS_ContextElement element in context.GetContextElements())
+            {
+                if ((path.Equals("") || element.Path.Equals(path)) && element.GetChildrenByPath(childPath).Count > 0)
+                    elements.Add(new FilterWrapper(element));
+            }
+            return this;
+        }
+
         public IEQS_ContextFilter SortByDistance(Vector3 targetPosition, int multiply = 1)
         {
             foreach(FilterWrapper wrapper in elements)
             {
-                wrapper.weight += 1 * multiply / (targetPosition - wrapper.element.Position).magnitude;
+                wrapper.weight += 1 * multiply / Vector3.Distance(targetPosition, wrapper.element.Position);
             }
             SortElements();
             return this;
         }
 
+
         private void SortElements()
         {
             elements.Sort((first, second) => { return first.weight.CompareTo(second.weight); });
         }
-
 
         private class FilterWrapper
         {

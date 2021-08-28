@@ -1,4 +1,5 @@
-﻿using Building.Interactive;
+﻿using Ai.EQS;
+using Building.Interactive;
 using Items;
 using System;
 using System.Collections;
@@ -14,6 +15,8 @@ namespace Ai.Inventory
         List<IItem> items = new List<IItem>();
 
         IItem handItem = null;
+
+        public IEQS_ContextElement EqsElement { get; private set; } = null;
 
         public void AddItem(IItem item)
         {

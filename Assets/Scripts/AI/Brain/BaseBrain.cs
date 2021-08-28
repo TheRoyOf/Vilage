@@ -89,7 +89,7 @@ namespace Ai.Brain
             if (activeAction.storageFrom != null)
                 agent.SetDestination(activeAction.storageFrom.GetTransform().localPosition);
             else
-                agent.SetDestination(activeAction.item.GetGameObject().transform.localPosition);
+                agent.SetDestination(activeAction.item.gameObject.transform.localPosition);
 
             bool waitReachDestination = true;
             while (waitReachDestination)

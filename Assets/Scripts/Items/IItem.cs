@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using Ai.EQS;
 
 namespace Items
 {
@@ -7,8 +8,9 @@ namespace Items
         string GetPath();
         int GetCount();
         int GetMaxStackCount();
-        GameObject GetGameObject();
         void PickupItem();
         void DropItem();
+        GameObject gameObject { get; }
+        IEQS_ContextElement EqsElement { get; }
     }
 }

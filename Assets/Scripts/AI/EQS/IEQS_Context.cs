@@ -10,5 +10,6 @@ namespace Ai.EQS
         IEQS_ContextFilter GetFilter();
         //Fast filtered
         IEQS_ContextElement GetNearest(string path, Vector3 position);
+        List<IEQS_ContextElement> GetAllByPath(string path);
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using Ai.EQS;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,6 +10,7 @@ namespace Items
         [SerializeField]
         private string path = "";
 
+        public IEQS_ContextElement EqsElement { get; private set; } = null;
 
         public int GetCount()
         {

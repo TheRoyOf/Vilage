@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace Ai.EQS
 {
@@ -6,7 +7,11 @@ namespace Ai.EQS
     {
         EEQS_ContextType ContextType { get; set; }
         string Path { get; set; }
+        Dictionary<string, object> Parameters { get; set; }
+        List<IEQS_ContextElement> Child { get; set; }
         Vector3 Position { get; }
         GameObject gameObject { get; }
+
+        List<IEQS_ContextElement> GetChildrenByPath(string path);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Items;
 using UnityEngine;
+using Ai.EQS;
 
 namespace Building.Interactive
 {
@@ -10,5 +11,6 @@ namespace Building.Interactive
         IItem PoolItem(string path, int count = 1);
         bool IsContain(string path, int count = 1);
         Transform GetTransform();
+        IEQS_ContextElement EqsElement { get; }
     }
 }

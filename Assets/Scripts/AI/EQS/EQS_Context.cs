@@ -25,5 +25,10 @@ namespace Ai.EQS
         {
             return GetFilter().AddElementsOfPath(path).SortByDistance(position).GetContextElement();
         }
+
+        public List<IEQS_ContextElement> GetAllByPath(string path)
+        {
+            return GetFilter().AddElementsOfPath(path).GetContextElements();
+        }
     }
 }

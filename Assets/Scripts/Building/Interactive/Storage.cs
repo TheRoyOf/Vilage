@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Ai.EQS;
 
 namespace Building.Interactive
 {
@@ -9,11 +10,23 @@ namespace Building.Interactive
     {
         List<IItem> items = new List<IItem>();
 
+        public IEQS_ContextElement EqsElement { get; private set; } = null;
+
+        private void Awake()
+        {
+            EqsElement = GetComponent<IEQS_ContextElement>();
+        }
+
         public void AddItem(IItem item)
         {
             if(IsContain(item.GetPath()))
 
             items.Add(item);
+
+            if(EqsElement != null && item.EqsElement != null)
+            {
+                EqsElement.Child.Add(item.EqsElement);
+            }
         }
 
         public IItem GetItem(string path, int count = 1)
