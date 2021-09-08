@@ -26,6 +26,7 @@ namespace TaskManagment
 
         public void SetCarryAction_Item(ITask task, IBrain performer, IItem item, IStorage storageTo)
         {
+            actionType = EActionType.CARRY;
             this.task = task;
             this.performer = performer;
             this.item = item;
@@ -34,6 +35,7 @@ namespace TaskManagment
         
         public void SetCarryAction_Storage(ITask task, IBrain performer, string path, int count, IStorage storageFrom, IStorage storageTo)
         {
+            actionType = EActionType.CARRY;
             this.task = task;
             this.performer = performer;
             this.path = path;
@@ -44,6 +46,7 @@ namespace TaskManagment
         
         public void SetInteractionAction(ITask task, IBrain performer, float progressStep, float time, IInteractive interactive)
         {
+            actionType = EActionType.INTERACTION;
             this.task = task;
             this.performer = performer;
             this.progress = progressStep;

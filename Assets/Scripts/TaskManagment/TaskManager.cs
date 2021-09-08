@@ -13,17 +13,17 @@ namespace TaskManagment
 
         public void Deactivation()
         {
-            throw new System.NotImplementedException();
+
         }
 
         public void Init()
         {
-            throw new System.NotImplementedException();
+
         }
 
         public void Update()
         {
-            throw new System.NotImplementedException();
+
         }
 
         public void RegisterTask(ITask task)

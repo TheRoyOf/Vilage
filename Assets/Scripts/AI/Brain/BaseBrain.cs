@@ -7,6 +7,7 @@ using TaskManagment;
 using UnityEngine.AI;
 using Ai.Inventory;
 using Building.Interactive;
+using TaskManagment.Tasks;
 
 namespace Ai.Brain
 {
@@ -15,11 +16,21 @@ namespace Ai.Brain
         [SerializeField]
         private NavMeshAgent agent = null;
 
-        [SerializeField]
         private IInventory inventory = null;
 
         TaskManagment.Action activeAction = null;
 
+        private void Awake()
+        {
+            if(inventory == null)
+            {
+                inventory = GetComponent<IInventory>();
+            }
+            else
+            {
+                Debug.LogError("Inventory not found");
+            }
+        }
 
         private void Start()
         {
@@ -53,7 +64,12 @@ namespace Ai.Brain
 
         public void UpdateActiveTask()
         {
-            activeAction = Pool.taskManager.GetNextTask(ETaskType.ANY).GetAction(this);
+            ITask task = Pool.taskManager.GetNextTask(ETaskType.ANY);
+
+            if (task == null)
+                return;
+
+            activeAction = task.GetAction(this);
 
             if(activeAction == null)
             {
@@ -61,8 +77,6 @@ namespace Ai.Brain
 
                 return;
             }
-
-            activeAction.performer = this;
 
             StartAction();
         }

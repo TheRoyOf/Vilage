@@ -10,11 +10,14 @@ namespace Items
         [SerializeField]
         private string path = "";
 
+        [SerializeField]
+        private int count = 1;
+
         public IEQS_ContextElement EqsElement { get; private set; } = null;
 
         public int GetCount()
         {
-            return 1;
+            return count;
         }
 
         public GameObject GetGameObject()

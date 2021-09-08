@@ -13,7 +13,7 @@ namespace Building
 
         public void UpdateGhostMaterial()
         {
-            throw new System.NotImplementedException();
+
         }
     }
 }

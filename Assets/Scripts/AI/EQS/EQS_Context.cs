@@ -9,6 +9,13 @@ namespace Ai.EQS
         public EEQS_ContextType contextType = EEQS_ContextType.NONE;
         public List<IEQS_ContextElement> contextElements = new List<IEQS_ContextElement>();
 
+        public EQS_Context() { }
+
+        public EQS_Context(EEQS_ContextType contextType)
+        {
+            this.contextType = contextType;
+        }
+
         public List<IEQS_ContextElement> GetContextElements()
         {
             return contextElements;
@@ -29,6 +36,18 @@ namespace Ai.EQS
         public List<IEQS_ContextElement> GetAllByPath(string path)
         {
             return GetFilter().AddElementsOfPath(path).GetContextElements();
+        }
+
+        public void AddContextElement(IEQS_ContextElement element)
+        {
+            contextElements.Add(element);
+        }
+
+        public bool RemoveContextElement(IEQS_ContextElement element)
+        {
+            if(!contextElements.Contains(element))
+                return contextElements.Remove(element);
+            return false;
         }
     }
 }

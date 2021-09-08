@@ -19,7 +19,7 @@ namespace Building.Interactive
 
         public void AddItem(IItem item)
         {
-            if(IsContain(item.GetPath()))
+            //if(IsContain(item.GetPath()))
 
             items.Add(item);
 

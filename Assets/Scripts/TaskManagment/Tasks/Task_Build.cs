@@ -71,16 +71,22 @@ namespace TaskManagment.Tasks
                     IEQS_ContextElement item = EQS.GetContext(EEQS_ContextType.ITEMS).GetNearest(needItems[0].itemPath, performer.gameObject.transform.localPosition);
                     IEQS_ContextElement storage = EQS.GetContext(EEQS_ContextType.BUILDING)
                         .GetFilter().AddElementsByChildrenPath(needItems[0].itemPath, "Storage").SortByDistance(performer.gameObject.transform.localPosition).GetContextElement();
-                    if(Vector3.Distance(performer.gameObject.transform.localPosition, item.Position) < 
+                    if((item != null && storage == null) || Vector3.Distance(performer.gameObject.transform.localPosition, item.Position) < 
                         Vector3.Distance(performer.gameObject.transform.localPosition, storage.Position))
                     {
                         //item
                         action.SetCarryAction_Item(this, performer, item.gameObject.GetComponent<IItem>(), buildingStorage);
                     }
-                    else
+                    else if (storage != null)
                     {
                         //storage
                         action.SetCarryAction_Storage(this, performer, needItems[0].itemPath, needItems[0].count, storage.gameObject.GetComponent<IStorage>(), buildingStorage);
+                    }
+                    else
+                    {
+                        Debug.LogError("Invalide parameters");
+                        lastAction = null;
+                        return null;
                     }
 
                     lastAction = action;

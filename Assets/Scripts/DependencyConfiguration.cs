@@ -1,4 +1,5 @@
-﻿using Building;
+﻿using Ai.EQS;
+using Building;
 using Game;
 using HUD;
 using Player.Input;
@@ -22,11 +23,6 @@ namespace Game
             InitManagers();
         }
 
-        private void Start()
-        {
-            Pool.hudManager.ShowWidget(EWidgetType.MAIN);
-        }
-
         private void Update()
         {
             foreach (IManager manager in managers)
@@ -42,6 +38,8 @@ namespace Game
 
         private void CreateDependensies()
         {
+            EQS.Init();
+
             if (Pool.buildingManager == null)
             {
                 Pool.SetBuildingManager(new BuildingManager());
