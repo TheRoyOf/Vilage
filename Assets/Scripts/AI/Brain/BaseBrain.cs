@@ -20,6 +20,9 @@ namespace Ai.Brain
 
         TaskManagment.Action activeAction = null;
 
+        Coroutine carryActionCoroutine = null;
+        Coroutine interactionActionCoroutine = null;
+
         private void Awake()
         {
             if(inventory == null)
@@ -41,8 +44,8 @@ namespace Ai.Brain
         {
             if(activeAction != null)
             {
-                StopCoroutine(CarryAction());
-                StopCoroutine(InteractionAction());
+                StopCoroutine(carryActionCoroutine);
+                StopCoroutine(interactionActionCoroutine);
 
                 switch(activeAction.actionType)
                 {
@@ -58,6 +61,7 @@ namespace Ai.Brain
                         break;
                 }
 
+                activeAction.task.AbortExecution();
                 activeAction = null;
             }
         }
@@ -89,11 +93,11 @@ namespace Ai.Brain
             switch(activeAction.actionType)
             {
                 case EActionType.CARRY:
-                    StartCoroutine(CarryAction());
+                    carryActionCoroutine = StartCoroutine(CarryAction());
                     break;
 
                 case EActionType.INTERACTION:
-                    StartCoroutine(InteractionAction());
+                    interactionActionCoroutine = StartCoroutine(InteractionAction());
                     break;
             }
         }
@@ -152,6 +156,7 @@ namespace Ai.Brain
 
             activeAction.storageTo.AddItem(inventory.DropFromHand());
             BreakeActiveTask();
+            UpdateActiveTask();
         }
 
         private IEnumerator InteractionAction()
@@ -164,9 +169,11 @@ namespace Ai.Brain
             {
                 yield return new WaitForSeconds(activeAction.time);
                 interactive.AddProgress(activeAction.progress);
+                Debug.Log("Corrent: " + interactive.GetCurrentProgress());
             }
 
             BreakeActiveTask();
+            UpdateActiveTask();
         }
 
         public IInventory GetInventory()

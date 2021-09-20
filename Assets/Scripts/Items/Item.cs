@@ -32,12 +32,18 @@ namespace Items
 
         public void PickupItem()
         {
-            throw new System.NotImplementedException();
+            GetComponent<MeshRenderer>().enabled = false;
+            GetComponent<Collider>().enabled = false;
+            GetComponentInChildren<MeshRenderer>().enabled = false;
+            GetComponentInChildren<Collider>().enabled = false;
         }
 
         public void DropItem()
         {
-            throw new System.NotImplementedException();
+            GetComponent<MeshRenderer>().enabled = true;
+            GetComponent<Collider>().enabled = true;
+            GetComponentInChildren<MeshRenderer>().enabled = true;
+            GetComponentInChildren<Collider>().enabled = true;
         }
 
         public int GetMaxStackCount()

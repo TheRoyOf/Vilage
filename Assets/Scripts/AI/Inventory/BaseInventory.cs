@@ -49,7 +49,7 @@ namespace Ai.Inventory
 
         public bool TakeToHand(IItem item)
         {
-            if(handItem == null)
+            if(handItem != null)
             {
                 return false;
             }
