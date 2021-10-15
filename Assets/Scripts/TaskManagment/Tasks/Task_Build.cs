@@ -8,11 +8,15 @@ using Game;
 using Building.Configuration.Models;
 using Items;
 using Ai.EQS;
+using UnityEngine.Profiling;
 
 namespace TaskManagment.Tasks
 {
     public class Task_Build : ITask
     {
+        public event System.Action OnTaskComplete;
+        public event System.Action OnTaskFailed;
+
         private const string BUILDPATH = "buildPath";
         private const string TARGET = "target";
 
@@ -22,7 +26,7 @@ namespace TaskManagment.Tasks
 
         private bool avable = false;
 
-        private TaskManagment.Action lastAction = null;
+        private TaskManagment.IAction lastAction = null;
 
 
         private string buildPath = "";
@@ -33,30 +37,27 @@ namespace TaskManagment.Tasks
         private IStorage buildingStorage = null;
         private IInteractive interactive = null;
 
+        public ETaskType TaskType { get => taskType; set => taskType = value; }
+        public float Priority { get => priority; set => priority = value; }
 
         public Task_Build()
         {
             Pool.taskManager.RegisterTask(this);
         }
 
-        public void AbortExecution(TaskManagment.Action action = null)
+        public void AbortExecution(TaskManagment.IAction action = null)
         {
             if(lastAction != null)
             {
-                lastAction.performer.BreakeActiveTask();
                 lastAction = null;
-            }
-
-            if(action != null)
-            {
-                action.performer.BreakeActiveTask();
             }
 
             avable = true;
         }
 
-        public Action GetAction(IBrain performer)
+        public IAction GetAction(IBrain performer)
         {
+            Profiler.BeginSample("GetAction");
             Construction construction = Pool.buildingConfig.GetByPath(buildPath);
 
             List<Construction.BuildCost> needItems = new List<Construction.BuildCost>();
@@ -64,32 +65,57 @@ namespace TaskManagment.Tasks
             //все ли ресурсы на складе? (Нести ресурсы)
             if (!IsContainAllNeedItems(construction, needItems))
             {
-                Action action = new Action();
+                IAction action = new Carry_Action();
 
                 if (IsAvableAllRequiredItems(needItems))
                 {
+                    //request for find nearest requried item
                     IEQS_ContextElement item = EQS.GetContext(EEQS_ContextType.ITEMS).GetNearest(needItems[0].itemPath, performer.gameObject.transform.localPosition);
+                    //request for find nearest storage which contain required item
                     IEQS_ContextElement storage = EQS.GetContext(EEQS_ContextType.BUILDING)
                         .GetFilter().AddElementsByChildrenPath(needItems[0].itemPath, "Storage").SortByDistance(performer.gameObject.transform.localPosition).GetContextElement();
-                    if((item != null && storage == null) || Vector3.Distance(performer.gameObject.transform.localPosition, item.Position) < 
-                        Vector3.Distance(performer.gameObject.transform.localPosition, storage.Position))
+
+                    if((item != null && storage == null) 
+                        || Vector3.Distance(performer.gameObject.transform.localPosition, item.Position) 
+                        < Vector3.Distance(performer.gameObject.transform.localPosition, storage.Position))
                     {
                         //item
-                        action.SetCarryAction_Item(this, performer, item.gameObject.GetComponent<IItem>(), buildingStorage);
+                        action.SetParameters(new Dictionary<string, object> 
+                        { 
+                            { "task", this }, 
+                            { "performer", performer }, 
+                            { "path", "" },
+                            { "item", item.gameObject.GetComponent<IItem>() },
+                            { "storageFrom", null },
+                            { "storageTo", buildingStorage },
+                            { "count", needItems[0].count }
+                        });
                     }
                     else if (storage != null)
                     {
                         //storage
-                        action.SetCarryAction_Storage(this, performer, needItems[0].itemPath, needItems[0].count, storage.gameObject.GetComponent<IStorage>(), buildingStorage);
+                        action.SetParameters(new Dictionary<string, object>
+                        {
+                            { "task", this },
+                            { "performer", performer },
+                            { "path", "" },
+                            { "item", null },
+                            { "storageFrom", storage.gameObject.GetComponent<IStorage>() },
+                            { "storageTo", buildingStorage },
+                            { "count", needItems[0].count }
+                        });
                     }
                     else
                     {
                         Debug.LogError("Invalide parameters");
                         lastAction = null;
+                        OnTaskFailed?.Invoke();
+                        Profiler.EndSample();
                         return null;
                     }
 
                     lastAction = action;
+                    Profiler.EndSample();
                     return action;
                 }
             }
@@ -97,30 +123,25 @@ namespace TaskManagment.Tasks
             //Не максимальный прогресс сборки? (Строить здание)
             if(interactive.GetCurrentProgress() < interactive.GetMaxProgress() && IsContainAllNeedItems(construction))
             {
-                Action action = new Action();
-                action.SetInteractionAction(this, performer, progressStep, timeForStep, interactive);
+                IAction action = new Interaction_Action();
+                action.SetParameters(new Dictionary<string, object>
+                {
+                    { "task", this },
+                    { "performer", performer },
+                    { "interactive", interactive },
+                    { "time", timeForStep },
+                    { "progress", progressStep }
+                });
 
                 lastAction = action;
+                Profiler.EndSample();
                 return action;
             }
 
             lastAction = null;
+            OnTaskComplete?.Invoke();
+            Profiler.EndSample();
             return null;
-        }
-
-        public void SetTaskPriority(float priority)
-        {
-            this.priority = priority;
-        }
-
-        public float GetTaskPriority()
-        {
-            return priority;
-        }
-
-        public ETaskType GetTaskType()
-        {
-            return taskType;
         }
 
         public bool AvableToGet()
@@ -183,7 +204,7 @@ namespace TaskManagment.Tasks
             avable = true;
         }
 
-        public Action GetLastAction(string key = "")
+        public IAction GetLastAction(string key = "")
         {
             return lastAction;
         }

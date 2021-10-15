@@ -10,7 +10,7 @@ namespace Building.Interactive
         IItem GetItem(string path, int count = 1);
         IItem PoolItem(string path, int count = 1);
         bool IsContain(string path, int count = 1);
-        Transform GetTransform();
+        Vector3 GetInteractionPosition();
         IEQS_ContextElement EqsElement { get; }
     }
 }

@@ -13,15 +13,23 @@ namespace Ai.Brain
 {
     public class BaseBrain : MonoBehaviour, IBrain
     {
+        public event System.Action OnDestinationReached;
+        public event System.Action OnDestinationInvald;
+
+        private const int agentStopRate = 100;
+
         [SerializeField]
         private NavMeshAgent agent = null;
 
         private IInventory inventory = null;
 
-        TaskManagment.Action activeAction = null;
+        private ITask activeTask = null;
+        private TaskManagment.IAction activeAction = null;
 
-        Coroutine carryActionCoroutine = null;
-        Coroutine interactionActionCoroutine = null;
+        private Coroutine action_Coroutine = null;
+        private Coroutine moveTo_Coroutine = null;
+
+        IInventory IBrain.inventory { get => inventory; set => inventory = value; }
 
         private void Awake()
         {
@@ -42,143 +50,162 @@ namespace Ai.Brain
 
         public void BreakeActiveTask()
         {
-            if(activeAction != null)
+            if (activeTask == null)
             {
-                StopCoroutine(carryActionCoroutine);
-                StopCoroutine(interactionActionCoroutine);
-
-                switch(activeAction.actionType)
-                {
-                    case EActionType.CARRY:
-                        if(inventory.GetItemInHand() != null)
-                        {
-                            inventory.DropFromHand();
-                        }
-                        agent.SetDestination(gameObject.transform.localPosition);
-                        break;
-
-                    case EActionType.INTERACTION:
-                        break;
-                }
-
-                activeAction.task.AbortExecution();
-                activeAction = null;
+                return;
             }
+
+            if (action_Coroutine != null)
+                StopCoroutine(action_Coroutine);
+
+            switch (activeAction.ActionType)
+            {
+                case EActionType.CARRY:
+                    if (inventory.GetItemInHand() != null)
+                    {
+                        inventory.DropFromHand();
+                    }
+                    agent.SetDestination(gameObject.transform.localPosition);
+                    break;
+
+                case EActionType.INTERACTION:
+                    break;
+            }
+
+            activeTask.OnTaskComplete -= TaskComplete;
+            activeTask.OnTaskFailed -= TaskFailed;
+
+            activeAction.OnActionComplete -= ActionComplete;
+            activeAction.OnActionFailed -= ActionFailed;
+
+            activeTask.AbortExecution();
+            activeAction.BreakAction();
+
+            activeTask = null;
+            activeAction = null;
         }
 
         public void UpdateActiveTask()
         {
-            ITask task = Pool.taskManager.GetNextTask(ETaskType.ANY);
+            Debug.Log("Update active task");
+            if (activeTask != null)
+            {
+                BreakeActiveTask();
+            }
 
-            if (task == null)
+            activeTask = Pool.taskManager.GetNextTask(ETaskType.ANY);
+
+            if(activeTask == null)
+            {
+                Debug.LogWarning("Next task invalide");
                 return;
+            }
 
-            activeAction = task.GetAction(this);
+            activeTask.OnTaskComplete += TaskComplete;
+            activeTask.OnTaskFailed += TaskFailed;
+
+            UpdateActiveAction();
+        }
+
+        public bool MoveTo(Vector3 destination)
+        {
+            if (moveTo_Coroutine != null)
+            {
+                StopCoroutine(moveTo_Coroutine);
+            }
+
+            agent.SetDestination(destination);
+
+            if (agent.path.status == NavMeshPathStatus.PathInvalid)
+            {
+                OnDestinationInvald?.Invoke();
+                return false;
+            }
+
+            moveTo_Coroutine = StartCoroutine(MoveTo_Coroutine(destination));
+            return true;
+        }
+
+
+        private void UpdateActiveAction()
+        {
+            Debug.Log("Update active action");
+            if (activeAction != null)
+            {
+                activeAction.OnActionComplete -= ActionComplete;
+                activeAction.OnActionFailed -= ActionFailed;
+                UpdateActiveTask();
+                return;
+            }
+
+            if (activeTask == null)
+            {
+                UpdateActiveTask();
+            }
+
+            activeAction = activeTask.GetAction(this);
 
             if(activeAction == null)
             {
-                Debug.LogWarning("Next task invalide");
-
+                Debug.LogWarning("Next action invalide");
                 return;
             }
 
-            StartAction();
+            activeAction.OnActionComplete += ActionComplete;
+            activeAction.OnActionFailed += ActionFailed;
+
+            action_Coroutine = StartCoroutine(activeAction.Action());
         }
 
-        private void StartAction()
+        private void ActionComplete()
         {
-            if (activeAction == null)
-                return;
+            Debug.Log("Action complete");
+            activeAction = null;
+            UpdateActiveAction();
+        }
 
-            switch(activeAction.actionType)
+        private void ActionFailed()
+        {
+            Debug.LogWarning("Action failed");
+            UpdateActiveTask();
+        }
+        
+
+        private void TaskComplete()
+        {
+            Debug.Log("Task complete");
+            UpdateActiveTask();
+        }
+
+        private void TaskFailed()
+        {
+            Debug.LogWarning("Task failed");
+            UpdateActiveTask();
+        }
+
+
+        private IEnumerator MoveTo_Coroutine(Vector3 destination)
+        {
+            if (agent.path.status == NavMeshPathStatus.PathInvalid)
             {
-                case EActionType.CARRY:
-                    carryActionCoroutine = StartCoroutine(CarryAction());
-                    break;
-
-                case EActionType.INTERACTION:
-                    interactionActionCoroutine = StartCoroutine(InteractionAction());
-                    break;
+                OnDestinationInvald?.Invoke();
+                yield return null;
             }
-        }
 
-        private IEnumerator CarryAction()
-        {
-            if (activeAction.storageFrom != null)
-                agent.SetDestination(activeAction.storageFrom.GetTransform().localPosition);
-            else
-                agent.SetDestination(activeAction.item.gameObject.transform.localPosition);
 
-            bool waitReachDestination = true;
-            while (waitReachDestination)
+            while (true)
             {
                 if (!agent.pathPending)
                 {
-                    if (agent.remainingDistance <= agent.stoppingDistance)
+                    if (agent.remainingDistance <= agent.stoppingDistance && (!agent.hasPath || agent.velocity.sqrMagnitude <= agent.speed / agentStopRate))
                     {
-                        if (!agent.hasPath || agent.velocity.sqrMagnitude == 0f)
-                        {
-                            waitReachDestination = false;
-                        }
+                        OnDestinationReached?.Invoke();
+                        break;
                     }
                 }
 
                 yield return new WaitForSeconds(0.1f);
             }
-
-            if (activeAction.storageFrom != null)
-            {
-                inventory.TakeToHand(activeAction.storageFrom.GetItem(activeAction.path, activeAction.count));
-            }
-            else
-            {
-                inventory.TakeToHand(activeAction.item);
-            }
-
-            agent.SetDestination(activeAction.storageTo.GetTransform().localPosition);
-
-            waitReachDestination = true;
-            while (waitReachDestination)
-            {
-                if (!agent.pathPending)
-                {
-                    if (agent.remainingDistance <= agent.stoppingDistance)
-                    {
-                        if (!agent.hasPath || agent.velocity.sqrMagnitude == 0f)
-                        {
-                            waitReachDestination = false;
-                        }
-                    }
-                }
-
-                yield return new WaitForSeconds(0.1f);
-            }
-
-            activeAction.storageTo.AddItem(inventory.DropFromHand());
-            BreakeActiveTask();
-            UpdateActiveTask();
-        }
-
-        private IEnumerator InteractionAction()
-        {
-            IInteractive interactive = activeAction.interactive;
-
-            //подходим к целе
-
-            while (interactive.GetCurrentProgress() < interactive.GetMaxProgress())
-            {
-                yield return new WaitForSeconds(activeAction.time);
-                interactive.AddProgress(activeAction.progress);
-                Debug.Log("Corrent: " + interactive.GetCurrentProgress());
-            }
-
-            BreakeActiveTask();
-            UpdateActiveTask();
-        }
-
-        public IInventory GetInventory()
-        {
-            return inventory;
         }
     }
 }

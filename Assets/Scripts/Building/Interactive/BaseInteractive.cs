@@ -6,10 +6,21 @@ namespace Building.Interactive
 {
     public class BaseInteractive : MonoBehaviour, IInteractive
     {
+        [SerializeField]
+        private GameObject interactiveTarget = null;
+
         private float progress = 0;
         private float maxProgress = 0;
 
         private IInteractionResult interactionResult = null;
+
+        private void Awake()
+        {
+            if(interactiveTarget == null)
+            {
+                interactiveTarget = gameObject;
+            }
+        }
 
         public bool AddProgress(float progress)
         {
@@ -47,6 +58,11 @@ namespace Building.Interactive
         public void SetInteractionResult(IInteractionResult interaction)
         {
             interactionResult = interaction;
+        }
+
+        public Vector3 GetInteractionPosition()
+        {
+            return interactiveTarget.transform.localPosition;
         }
     }
 }

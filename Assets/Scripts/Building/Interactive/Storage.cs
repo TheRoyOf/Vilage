@@ -39,9 +39,9 @@ namespace Building.Interactive
             throw new System.NotImplementedException();
         }
 
-        public Transform GetTransform()
+        public Vector3 GetInteractionPosition()
         {
-            return transform;
+            return transform.localPosition;
         }
 
         public bool IsContain(string path, int count = 1)

@@ -1,4 +1,5 @@
-﻿using Ai.EQS;
+﻿using Ai.Brain;
+using Ai.EQS;
 using Building.Interactive;
 using Items;
 using System;
@@ -33,11 +34,6 @@ namespace Ai.Inventory
         public IItem PoolItem(string path, int count = 1)
         {
             throw new NotImplementedException();
-        }
-
-        public Transform GetTransform()
-        {
-            return transform;
         }
 
         public bool IsContain(string path, int count = 1)
@@ -85,6 +81,11 @@ namespace Ai.Inventory
         public Action<IItem> GetUpdateItemDelegate()
         {
             return OnUpdateItemInHand;
+        }
+
+        Vector3 IStorage.GetInteractionPosition()
+        {
+            return transform.localPosition;
         }
     }
 }

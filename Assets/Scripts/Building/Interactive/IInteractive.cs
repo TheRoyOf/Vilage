@@ -1,4 +1,6 @@
-﻿namespace Building.Interactive
+﻿using UnityEngine;
+
+namespace Building.Interactive
 {
     public interface IInteractive
     {
@@ -8,5 +10,6 @@
         void SetMaxProgress(float progress);
         float GetMaxProgress();
         void SetInteractionResult(IInteractionResult interaction);
+        Vector3 GetInteractionPosition();
     }
 }
